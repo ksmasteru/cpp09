@@ -26,5 +26,6 @@ class BitcoinExchange{
         bool    check_and_convert_date(std::string& date);
         int getDayspassed(std::string& year, std::string& month, std::string& day);
         bool isDataStored();
+        bool is_valid_header(std::ifstream& ifs, const char* header);
         
 };

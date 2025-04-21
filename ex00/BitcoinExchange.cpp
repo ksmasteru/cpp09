@@ -3,8 +3,30 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <cstdlib>
 
 #define MAX_QUANT 1000
+
+int stringToInt(const std::string& str) {
+    std::istringstream iss(str);
+    int num;
+    iss >> num;
+    return num;
+}
+
+long double stringToLongDouble(const std::string& str) {
+    std::istringstream iss(str);
+    long double value;
+    iss >> value;
+    return value;
+}
+
+std::string intToString(int value) {
+    std::ostringstream oss;
+    oss << value;
+    return oss.str();
+}
 
 BitcoinExchange::BitcoinExchange()
 {
@@ -16,16 +38,10 @@ bool BitcoinExchange::isDataStored()
     return (this->data_stored);
 }
 
-void errExit(const char *msg)
-{
-    std::cerr << msg << std::endl;
-    exit(1);
-}
-
 int BitcoinExchange::getDayspassed(std::string& year, std::string& month, std::string& day)
 {
-    return ((std::stoi(year) - 2009) * 365 + (std::stoi(month) - 1) * 30
-        + std::stoi(day));
+    return ((stringToInt(year) - 2009) * 365 + (stringToInt(month) - 1) * 30
+        + stringToInt(day));
 }
 
 bool    BitcoinExchange::check_and_convert_date(std::string& date)
@@ -39,26 +55,26 @@ bool    BitcoinExchange::check_and_convert_date(std::string& date)
     std::string dayspassed;
     //std::cout << "month is " << month << std::endl;
     //std::cout << "day is " << day << std::endl;
-    for (int i = 0 ; i < year.size() ; i++)
+    for (size_t i = 0 ; i < year.size() ; i++)
     {
         if (!std::isdigit(year[i]))
             return (false);
     }
-    if (std::stoi(year) < 2009 || std::stoi(year) > CURRENT_YEAR)
+    if (stringToInt(year) < 2009 || stringToInt(year) > CURRENT_YEAR)
         return (false);
     if (date[4] != '-' || date[7] != '-')
         return (false);
-    for (int i = 0; i < month.size(); i++)
+    for (size_t i = 0; i < month.size(); i++)
     {
         if (!(std::isdigit(month[i])) || !(std::isdigit(day[i])))
             return (false);
     }
-    if ((std::stoi(month) > 12) || (std::stoi(month) <= 0)
-         || (std::stoi(day) <= 0) || (std::stoi(day) > 31))
+    if ((stringToInt(month) > 12) || (stringToInt(month) <= 0)
+         || (stringToInt(day) <= 0) || (stringToInt(day) > 31))
          return (false);
     //std::cout << "valid date " << std::endl;
     int days = this->getDayspassed(year, month, day);
-    date = std::to_string(days);
+    date = intToString(days);
     //std::cout << "days passed are " << dayspassed << std::endl;
     return (true);
 }
@@ -82,7 +98,7 @@ bool BitcoinExchange::isValidUserInput(const std::string& line, std::string& dat
         std::cout << "Error: bad input" << " => " << line << std::endl;
         return (false);
     }
-    if  (std::stod(quant) > MAX_QUANT)
+    if  (stringToLongDouble(quant) > MAX_QUANT)
     {
         std::cout << "Error: too large number" << std::endl;
         return false;
@@ -99,7 +115,7 @@ int BitcoinExchange::exchangeValue(const std::string& line)
          std::cout << "invalid date format" << std::endl;
          return -1;
     }
-    int dayspassed = std::stoi(date);
+    int dayspassed = stringToInt(date);
     std::cout << "dayspassed " << dayspassed << " Quant : " << quant << std::endl; 
     exit(1);
     return (0);   
@@ -161,7 +177,7 @@ long double BitcoinExchange::getExchangePrice(double quant, unsigned int dayspas
         dayspassed--;
     if (it != map.end())
     {
-        long double res = std::stold(it->second) * quant;
+        long double res = stringToLongDouble(it->second) * quant;
         return (res);
     }
     return (0);
@@ -173,7 +189,7 @@ std::pair<int ,double> BitcoinExchange::check_input(const std::string& line)
     std::string quant;
     if (!this->isValidUserInput(line, date, quant))
         return (std::pair<int, double>(-1, -1.0));
-    return (std::pair<int, double>(std::stoi(date), std::stod(quant)));
+    return (std::pair<int, double>(stringToInt(date), stringToLongDouble(quant)));
 }
 
 void BitcoinExchange::storeData(const char* filepath)
@@ -186,14 +202,13 @@ void BitcoinExchange::storeData(const char* filepath)
         return ;
     // read line by line :
     // skip first line
-    unsigned int days;
     //day 0 is 2009-01-0
     std::getline(ifs, str);
     int i = 0;
     while(std::getline(ifs, str) && ++i)
     {
         if (this->is_valid_line(str, date, price)) /*date parsed*/
-            this->map.insert(std::pair<unsigned int, std::string>(std::stoi(date), price));
+            this->map.insert(std::pair<unsigned int, std::string>(stringToInt(date), price));
         else
             std::cout << str << ": is incorrect" << "line : " << i-- << std::endl;
     }
@@ -218,7 +233,6 @@ void BitcoinExchange::getData(const std::string& line)
        << std::endl;
        return ;
     }
-    // <days, quant>
     std::pair<int , double>a = this->check_input(line);
     if (a.first == -1)
             return ;
@@ -228,7 +242,7 @@ void BitcoinExchange::getData(const std::string& line)
 }
 
 // provide date | quant to be fetched form data.csv
-bool is_valid_header(std::ifstream& ifs, const char* header)
+bool BitcoinExchange::is_valid_header(std::ifstream& ifs, const char* header)
 {
     std::string line;
     if (std::getline(ifs, line))
@@ -238,34 +252,4 @@ bool is_valid_header(std::ifstream& ifs, const char* header)
     }
     std::cerr << "invalid input file header :: make sure that input file header is " << header << std::endl;
     return (false);
-}
-
-int main(int ac, char **av)
-{
-    if (ac != 2)
-        return (1);
-    std::string date;
-    std::string price;
-    BitcoinExchange btc;
-    btc.storeData("data.csv");
-    // readline by line of user input and get data
-    std::ifstream ifs;
-    ifs.open(av[1]);
-    if (!ifs)
-    {
-        std::cout << "couldnt open " << av[1] << std::endl;
-        return (1); 
-    }
-    if (!is_valid_header(ifs, "date | value"))
-        return 1;
-    std::string line;
-    if (btc.isDataStored())
-    {
-        while (std::getline(ifs, line))
-            btc.getData(line);
-    }
-    else
-    {
-        std::cerr << "no data stored" << std::endl;
-    }
 }
